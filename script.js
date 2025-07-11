@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let coefficients = Array(repeatingArray(6, 2, ""));
+    let coefficients = Array.from({ length: 6 }, () => ["", ""]); // Поля для ввода чистые
     let averagePlayer1 = 0;
     let averagePlayer2 = 0;
     let totalPrediction = "";
     let differenceColor = "green";
     let smallestPlayerPoints = 0;
     let winner = 0;
-    let gameComments = Array(repeatingArray(6, 1, ""));
+    let gameComments = Array(6).fill("");
     let aiAnalysis = "";
     let aiEnabled = true;
     let winProbabilityPlayer1 = 50;
@@ -26,18 +26,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let activeInputField = null; // To keep track of the currently focused input
 
-    function repeatingArray(count, innerCount, initialValue) {
-        return Array.from({ length: count }, () => Array(innerCount).fill(initialValue));
-    }
-
+    // Function to format input as "X.XX" or "X.X"
     function formatInput(input) {
-        const formatted = input.replace(/[^0-9.]/g, '');
-        if (formatted.length === 1 && formatted !== ".") { // Если ввели одну цифру, добавляем точку
-            return formatted + ".";
+        let formatted = input.replace(/[^0-9.]/g, ''); // Удаляем все, кроме цифр и точки
+
+        // Если это первая цифра, автоматически добавляем точку
+        if (formatted.length === 1 && formatted.match(/[0-9]/)) {
+            formatted += ".";
         }
-        if (formatted.length > 4) { // Ограничение на 4 символа
-            return formatted.substring(0, 4);
+
+        // Ограничиваем до 4 символов
+        if (formatted.length > 4) {
+            formatted = formatted.substring(0, 4);
         }
+
+        // Если точка в начале, добавляем 0
+        if (formatted.startsWith('.')) {
+            formatted = '0' + formatted;
+        }
+
+        // Убедимся, что нет более одной точки
+        const parts = formatted.split('.');
+        if (parts.length > 2) {
+            formatted = parts[0] + '.' + parts.slice(1).join('');
+        }
+
         return formatted;
     }
 
@@ -66,10 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const difference = Math.abs(averagePlayer1 - averagePlayer2);
 
         if (difference <= 0.30) {
-            totalPrediction = "Рекомендуется ТБ 20.5";
+            totalPrediction = "ТБ 20.5";
             differenceColor = "green";
         } else {
-            totalPrediction = "Рекомендуется ТМ 20.5";
+            totalPrediction = "ТМ 20.5";
             differenceColor = "red";
         }
 
@@ -78,9 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const pointsPlayer2 = totalCoeff > 0 ? (averagePlayer2 / totalCoeff) * 21 : 0;
 
         smallestPlayerPoints = Math.min(pointsPlayer1, pointsPlayer2);
-        if (isNaN(smallestPlayerPoints)) smallestPlayerPoints = 0; // Handle cases where totalCoeff is 0
+        if (isNaN(smallestPlayerPoints)) smallestPlayerPoints = 0;
 
-        if (averagePlayer1 < averagePlayer2 && averagePlayer1 > 0) { // Игрок с меньшим кф - победитель
+        if (averagePlayer1 < averagePlayer2 && averagePlayer1 > 0) {
             winner = 1;
         } else if (averagePlayer2 < averagePlayer1 && averagePlayer2 > 0) {
             winner = 2;
@@ -113,14 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const changePlayer2 = Math.abs(currentPlayer2 - prevPlayer2);
 
                 if (changePlayer1 > 0.40 || changePlayer2 > 0.40) {
-                    if (currentPlayer1 > prevPlayer1) {
-                        gameComments[i] = "Игрок 1 теряет преимущество!";
-                    } else if (currentPlayer2 > prevPlayer2) {
-                        gameComments[i] = "Игрок 2 начал камбэк!";
-                    } else if (currentPlayer1 < prevPlayer1) { // Добавлено условие для усиления лидерства игрока 1
-                        gameComments[i] = "Игрок 1 усиливает лидерство!";
-                    } else if (currentPlayer2 < prevPlayer2) { // Добавлено условие для усиления лидерства игрока 2
-                        gameComments[i] = "Игрок 2 усиливает лидерство!";
+                    if (currentPlayer1 > prevPlayer1) { // Коэффициент вырос - теряет преимущество
+                        gameComments[i] = "Игрок 1 теряет!";
+                    } else if (currentPlayer2 > prevPlayer2) { // Коэффициент вырос - теряет преимущество
+                        gameComments[i] = "Игрок 2 теряет!";
+                    } else if (currentPlayer1 < prevPlayer1) { // Коэффициент упал - усиливает
+                        gameComments[i] = "Игрок 1 усиливает!";
+                    } else if (currentPlayer2 < prevPlayer2) { // Коэффициент упал - усиливает
+                        gameComments[i] = "Игрок 2 усиливает!";
                     }
                 }
             }
@@ -130,10 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function runAIAnalysis() {
         let scorePlayer1 = 0.0;
         let scorePlayer2 = 0.0;
-        let fluctuation1 = 0;
-        let fluctuation2 = 0;
-        let gainMoments1 = 0;
-        let gainMoments2 = 0;
+        let fluctuation1 = 0; // Количество сильных изменений кф1
+        let fluctuation2 = 0; // Количество сильных изменений кф2
+        let gainMoments1 = 0; // Количество раз, когда кф1 улучшался (становился меньше)
+        let gainMoments2 = 0; // Количество раз, когда кф2 улучшался (становился меньше)
 
         for (let i = 1; i < 6; i++) {
             const prev1 = parseFloat(coefficients[i - 1][0]);
@@ -150,13 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (diff1 > 0.3) { fluctuation1 += 1; }
                 if (diff2 > 0.3) { fluctuation2 += 1; }
 
-                if (curr1 < prev1) { gainMoments1 += 1; } // Игрок улучшает кф, значит "усиливает"
-                if (curr2 < prev2) { gainMoments2 += 1; } // Игрок улучшает кф, значит "усиливает"
+                if (curr1 < prev1) { gainMoments1 += 1; } // Игрок улучшает кф (становится меньше)
+                if (curr2 < prev2) { gainMoments2 += 1; } // Игрок улучшает кф (становится меньше)
             }
         }
 
-        scorePlayer1 = averagePlayer1 * 2 - fluctuation1 * 0.5 + gainMoments1;
-        scorePlayer2 = averagePlayer2 * 2 - fluctuation2 * 0.5 + gainMoments2;
+        // Логика AI: Чем ниже средний кф, тем лучше (умножаем на 2 для большего веса)
+        // Вычитаем флуктуации (нестабильность), добавляем моменты усиления (стабильный рост/удержание)
+        scorePlayer1 = (averagePlayer1 > 0 ? (1 / averagePlayer1) * 2 : 0) - fluctuation1 * 0.5 + gainMoments1;
+        scorePlayer2 = (averagePlayer2 > 0 ? (1 / averagePlayer2) * 2 : 0) - fluctuation2 * 0.5 + gainMoments2;
 
         const totalScore = scorePlayer1 + scorePlayer2;
         if (totalScore > 0) {
@@ -168,11 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (scorePlayer1 > scorePlayer2) {
-            aiAnalysis = `🤖 AI анализ: Игрок 1 демонстрирует лучшие шансы на победу. Вероятность победы: ${winProbabilityPlayer1}%`;
+            aiAnalysis = `🤖 Игрок 1: ${winProbabilityPlayer1}%`;
         } else if (scorePlayer2 > scorePlayer1) {
-            aiAnalysis = `🤖 AI анализ: Игрок 2 выглядит стабильнее и чаще усиливал позиции. Вероятность победы: ${winProbability2}%`;
+            aiAnalysis = `🤖 Игрок 2: ${winProbabilityPlayer2}%`;
         } else {
-            aiAnalysis = "🤖 AI анализ: Матч ожидается равным. Шансы игроков примерно по 50%.";
+            aiAnalysis = "🤖 Матч равный: 50/50.";
         }
     }
 
@@ -186,25 +201,26 @@ document.addEventListener('DOMContentLoaded', () => {
         aiAnalysisEl.textContent = aiAnalysis;
         aiAnalysisEl.style.display = aiEnabled ? 'block' : 'none';
 
-        // Обновление полей ввода и комментариев
         for (let i = 0; i < 6; i++) {
             const player1Input = document.getElementById(`player1_game${i + 5}`);
             const player2Input = document.getElementById(`player2_game${i + 5}`);
             const commentEl = document.getElementById(`comment_game${i + 5}`);
             const rowEl = document.getElementById(`row_game${i + 5}`);
 
+            // Update input values from coefficients array
             if (player1Input) player1Input.value = coefficients[i][0];
             if (player2Input) player2Input.value = coefficients[i][1];
 
             if (commentEl) {
                 commentEl.textContent = gameComments[i];
+                // Добавляем/убираем класс highlight только если есть комментарий
                 rowEl.classList.toggle('highlight', gameComments[i] !== "");
             }
         }
     }
 
     function clearData() {
-        coefficients = Array(repeatingArray(6, 2, ""));
+        coefficients = Array.from({ length: 6 }, () => ["", ""]); // Очищаем поля
         averagePlayer1 = 0;
         averagePlayer2 = 0;
         totalPrediction = "";
@@ -218,9 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
 
-    // Initialize input fields
     function setupInputFields() {
-        inputGrid.innerHTML = ''; // Clear existing inputs
+        inputGrid.innerHTML = '';
         for (let i = 0; i < 6; i++) {
             const rowDiv = document.createElement('div');
             rowDiv.classList.add('input-row');
@@ -234,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const input1 = document.createElement('input');
             input1.type = 'text';
             input1.id = `player1_game${i + 5}`;
-            input1.placeholder = 'Игрок 1';
+            input1.placeholder = 'Кф1'; // Сокращено
             input1.dataset.row = i;
             input1.dataset.col = 0;
             input1.setAttribute('inputmode', 'none'); // Отключаем нативную клавиатуру
@@ -242,35 +257,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeInputField = e.target;
                 virtualKeyboard.classList.remove('hidden');
             });
-            input1.addEventListener('blur', () => {
-                // Задержка, чтобы успел сработать клик по виртуальной клавиатуре
-                setTimeout(() => {
-                    if (!virtualKeyboard.contains(document.activeElement)) {
-                        virtualKeyboard.classList.add('hidden');
-                        activeInputField = null;
-                    }
-                }, 100);
-            });
             rowDiv.appendChild(input1);
 
             const input2 = document.createElement('input');
             input2.type = 'text';
             input2.id = `player2_game${i + 5}`;
-            input2.placeholder = 'Игрок 2';
+            input2.placeholder = 'Кф2'; // Сокращено
             input2.dataset.row = i;
             input2.dataset.col = 1;
             input2.setAttribute('inputmode', 'none'); // Отключаем нативную клавиатуру
             input2.addEventListener('focus', (e) => {
                 activeInputField = e.target;
                 virtualKeyboard.classList.remove('hidden');
-            });
-            input2.addEventListener('blur', () => {
-                 setTimeout(() => {
-                    if (!virtualKeyboard.contains(document.activeElement)) {
-                        virtualKeyboard.classList.add('hidden');
-                        activeInputField = null;
-                    }
-                }, 100);
             });
             rowDiv.appendChild(input2);
 
@@ -295,12 +293,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (value === 'backspace') {
                 activeInputField.value = activeInputField.value.slice(0, -1);
             } else if (value === 'done') {
-                activeInputField.blur(); // Hide keyboard
+                activeInputField.blur(); // Hide keyboard explicitly
+                virtualKeyboard.classList.add('hidden'); // Ensure it's hidden
+                activeInputField = null; // Clear active field
+                return; // Stop further processing
             } else {
                 let currentVal = activeInputField.value;
-                if (value === '.' && currentVal.includes('.')) {
-                    // Do nothing if already contains a dot
-                } else {
+                // Автоматическая точка после первой цифры, если ее еще нет
+                if (currentVal.length === 1 && currentVal.match(/[0-9]/) && value !== '.' && !currentVal.includes('.')) {
+                    activeInputField.value += '.' + value;
+                } else if (currentVal.length < 4) { // Ограничение на 4 символа
                     activeInputField.value += value;
                 }
             }
@@ -309,32 +311,44 @@ document.addEventListener('DOMContentLoaded', () => {
             coefficients[row][col] = formatInput(activeInputField.value);
             calculateAverages();
 
-            // Auto-advance logic (similar to SwiftUI example)
-            if (value !== 'backspace' && activeInputField.value.length >= 4) {
-                if (col === 0) { // Player 1 input, move to Player 2
+            // Автоматический переход к следующему полю после ввода 3 символов (X.XX)
+            if (activeInputField.value.length === 4) {
+                if (col === 0) { // Игрок 1, переходим к Игроку 2
                     const nextInput = document.getElementById(`player2_game${row + 5}`);
                     if (nextInput) nextInput.focus();
-                } else if (col === 1) { // Player 2 input, move to next game's Player 1
+                } else if (col === 1) { // Игрок 2, переходим к Игроку 1 следующего гейма
                     if (row < 5) {
                         const nextInput = document.getElementById(`player1_game${row + 6}`);
                         if (nextInput) nextInput.focus();
-                    } else { // Last input field
-                        activeInputField.blur(); // Hide keyboard
+                    } else { // Последнее поле, скрываем клавиатуру
+                        activeInputField.blur();
+                        virtualKeyboard.classList.add('hidden');
+                        activeInputField = null;
                     }
                 }
             }
         }
     });
 
+    // Обработчик для скрытия клавиатуры при тапе вне полей ввода и клавиатуры
+    document.addEventListener('click', (e) => {
+        if (activeInputField && !activeInputField.contains(e.target) && !virtualKeyboard.contains(e.target)) {
+            // Убеждаемся, что клик был вне активного поля и вне клавиатуры
+            activeInputField.blur();
+            virtualKeyboard.classList.add('hidden');
+            activeInputField = null;
+        }
+    });
+
     // Event listeners
     aiToggle.addEventListener('change', (e) => {
         aiEnabled = e.target.checked;
-        calculateAverages(); // Recalculate to update AI analysis visibility
+        calculateAverages();
     });
 
     clearButton.addEventListener('click', clearData);
 
     // Initial setup
     setupInputFields();
-    clearData(); // Call clearData to initialize everything
+    clearData(); // Вызываем clearData для инициализации всех полей пустыми
 });

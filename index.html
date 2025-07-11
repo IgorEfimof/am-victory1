@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Анализ коэффициентов</title>
+    <title>Анализ Кф.</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,24 +12,24 @@
             <label class="toggle-switch">
                 <input type="checkbox" id="aiToggle" checked>
                 <span class="slider round"></span>
-                Включить AI анализ
+                AI анализ
             </label>
-            <p class="average-text green">Средний кф. Игрок 1: <span id="averagePlayer1">0.00</span></p>
-            <p class="average-text green">Средний кф. Игрок 2: <span id="averagePlayer2">0.00</span></p>
-            <p class="winner-text blue">Победитель: Игрок <span id="winner">-</span></p>
+            <p class="avg-p green">Кф1: <span id="averagePlayer1">0.00</span></p>
+            <p class="avg-p green">Кф2: <span id="averagePlayer2">0.00</span></p>
+            <p class="winner-p blue">Победитель: Игрок <span id="winner">-</span></p>
             <div class="prediction-box">
                 <p id="totalPrediction" class="prediction-text green"></p>
             </div>
-            <p class="points-text white">Очки более слабого игрока: <span id="smallestPlayerPoints">0.00</span></p>
+            <p class="points-p white">Мин. очки: <span id="smallestPlayerPoints">0.00</span></p>
             <p id="aiAnalysis" class="ai-analysis-text yellow"></p>
         </div>
 
-        <h3 class="input-title">Введите коэффициенты (5-10 гейм)</h3>
+        <h3 class="input-title">Коэфф. (5-10 гейм)</h3>
 
         <div class="input-grid">
             </div>
 
-        <button id="clearButton" class="clear-button">Очистить данные</button>
+        <button id="clearButton" class="clear-button">Очистить</button>
     </div>
 
     <div id="virtualKeyboard" class="virtual-keyboard hidden">
